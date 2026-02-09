@@ -286,11 +286,10 @@ class UserData():
 	def mode_combo_changed(self, combotext):
 		self.backup_mode = combotext.get_active_text().lower()
 		module_logger.debug(_("Using backup mode: %s"),self.backup_mode)
-		# All modes are now supported: backup, sync, incremental
-		if self.backup_mode in ["backup", "sync", "incremental"]:
+		if self.backup_mode == "backup":
 			pass
 		else:
-			show_message(self.window, _("Unknown backup mode selected."))
+			show_message(self.window, _("This feature has not been implented yet. Please wait for future releases."))
 			self.backup_mode_combo.set_active(0)
 	
 	def tar_format_combo_changed(self, combotext):
@@ -363,27 +362,6 @@ class UserData():
 		self.backup_name = self.backup_name_entry.get_text()
 		self.backup_desc = self.backup_desc_entry.get_text()
 		self.backup_method = self.methods_combo.get_active_text()
-
-		# Collect scheduling information
-		self.backup_repeat = ""
-		if self.specific_interval_btn.get_active():
-			# Check which interval is selected
-			hourly_check = self.builder.get_object("hourly_check")
-			daily_check = self.builder.get_object("daily_check")
-			weekly_check = self.builder.get_object("weekly_check")
-			monthly_check = self.builder.get_object("monthly_check")
-
-			if hourly_check and hourly_check.get_active():
-				self.backup_repeat = "hourly"
-			elif daily_check and daily_check.get_active():
-				self.backup_repeat = "daily"
-			elif weekly_check and weekly_check.get_active():
-				self.backup_repeat = "weekly"
-			elif monthly_check and monthly_check.get_active():
-				self.backup_repeat = "monthly"
-
-			module_logger.debug(_("Backup schedule: %s") % self.backup_repeat)
-
 		try:
 			if self.source_dir and self.dest_dir and os.access(self.dest_dir, os.W_OK):
 				module_logger.debug(_(f"Name: {self.backup_name}, Description: {self.backup_desc}, Source: {self.source_dir}, Destination: {self.dest_dir}, Method: {self.backup_method}"))
@@ -468,7 +446,7 @@ class UserData():
 	def tar_backup(self):
 		# Does the actual copying
 		try:
-			self.timestamp, self.tarfilename, self.num_files, self.total_size, copy_files = self.tar_manager.prep_tar_backup(self.backup_name, self.source_dir, self.dest_dir, self.excluded_files, self.excluded_dirs, self.included_files, self.included_dirs, self.tar_backup_format, repeat=self.backup_repeat)
+			self.timestamp, self.tarfilename, self.num_files, self.total_size, copy_files = self.tar_manager.prep_tar_backup(self.backup_name, self.source_dir, self.dest_dir, self.excluded_files, self.excluded_dirs, self.included_files, self.included_dirs, self.tar_backup_format)
 			
 			self.tar_manager.add_meta_tar_backup()
 			
@@ -479,7 +457,7 @@ class UserData():
 				archived_files, self.archived_file_size, backuplog = self.tar_manager.callback_add_to_tar(path, archived_files, self.archived_file_size)
 				self.backuplog += backuplog
 				GLib.idle_add(self.set_progress, self.archived_file_size, self.total_size, self.backuplog)
-			self.tar_manager.finish_tar_backup(self.backuplog, self.backup_desc, self.backup_method, self.backup_mode)
+			self.tar_manager.finish_tar_backup(self.backuplog, self.backup_desc, self.backup_method)
 		except Exception as e:
 			print(e)
 	
@@ -490,43 +468,19 @@ class UserData():
 			module_logger.info(_("Starting backup using Rsync method..."))
 			from LeaptimeManager.rsync_backend import rsync_backend
 			rsync = rsync_backend(self.errors)
-
-			# Choose appropriate backup method based on mode
-			if self.backup_mode == "sync":
-				module_logger.info(_("Using sync mode (will delete extra files in destination)..."))
-				backup_data = rsync.prep_sync_backup(
-					self.backup_name, self.source_dir, self.dest_dir,
-					self.excluded_files, self.excluded_dirs,
-					self.included_files, self.included_dirs,
-					dry_run=False, show_progress=True, repeat=self.backup_repeat
-				)
-			elif self.backup_mode == "incremental":
-				module_logger.info(_("Using incremental mode (hard-link based)..."))
-				# Find previous backup for this backup name
-				previous_backup_dest = self._find_previous_backup(self.backup_name)
-				backup_data = rsync.prep_incremental_backup(
-					self.backup_name, self.source_dir, self.dest_dir,
-					self.excluded_files, self.excluded_dirs,
-					self.included_files, self.included_dirs,
-					previous_backup_dest=previous_backup_dest,
-					dry_run=False, show_progress=True, repeat=self.backup_repeat
-				)
-			else:  # backup mode (default)
-				module_logger.info(_("Using backup mode (one-time copy)..."))
-				backup_data = rsync.prep_rsync_backup(
-					self.backup_name, self.source_dir, self.dest_dir,
-					self.excluded_files, self.excluded_dirs,
-					self.included_files, self.included_dirs,
-					dry_run=False, show_progress=True, delete_extra=False, repeat=self.backup_repeat
-				)
-
+			backup_data = rsync.prep_rsync_backup(
+				self.backup_name, self.source_dir, self.dest_dir,
+				self.excluded_files, self.excluded_dirs,
+				self.included_files, self.included_dirs,
+				dry_run=False, show_progress=True, delete_extra=False
+			)
 			self.backuplog = backup_data["logfile"]
 			self.uuid = backup_data["uuid"]
 			self.timestamp = backup_data["timestamp"]
-
+			
 			def run_rsync_thread():
 				try:
-					module_logger.debug(f"[RUNNING] {' '.join(backup_data['cmd'])}")
+					module_logger.debug(f"[RUNNING] {" ".join(backup_data["cmd"])}")
 					process = subprocess.Popen(
 						backup_data["cmd"],
 						stdout=subprocess.PIPE,
@@ -544,37 +498,15 @@ class UserData():
 					# module_logger.error(str(e))
 					self.errors.append(str(e))
 					# GLib.idle_add(self.append_to_log_view, f"[ERROR] {e}\n")
-
-				# Pass backup mode and parent backup info to finish function
-				parent_backup = backup_data.get("parent_backup", None)
-				rsync.finish_rsync_backup(self.backup_desc, self.backup_method,
-										 backup_mode=self.backup_mode,
-										 parent_backup=parent_backup)
+				rsync.finish_rsync_backup(self.backup_desc, self.backup_method)
 				GLib.idle_add(self.set_widgets_after_backup)
 			threading.Thread(target=run_rsync_thread, daemon=True).start()
 		else:
 			module_logger.info(_("Starting backup using tarball method..."))
 			self.tar_backup()
 			module_logger.info(_("%(source_dir)s is backed up into %(tarfile)s" % {'source_dir': self.source_dir, 'tarfile': self.tarfilename}))
-
+		
 		GLib.idle_add(self.set_widgets_after_backup)
-
-	def _find_previous_backup(self, backup_name):
-		"""Find the most recent backup destination for the given backup name."""
-		previous_backups = []
-		for backup in self.data_db_list:
-			if backup.get("name") == backup_name and backup.get("mode") == "incremental":
-				previous_backups.append({
-					"destination": backup.get("destination"),
-					"created": backup.get("created")
-				})
-
-		if previous_backups:
-			# Sort by creation time and return the most recent
-			previous_backups.sort(key=lambda x: x["created"], reverse=True)
-			return previous_backups[0]["destination"]
-
-		return None
 	
 	# Page load definition functions
 	def load_mainpage(self):
