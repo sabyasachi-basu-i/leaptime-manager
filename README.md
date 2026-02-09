@@ -70,15 +70,15 @@ Aiming to be an all-in-one, friendly to new-users, GUI based backup manager for 
 
 **Data:**
 Data backup should have two modes:
-1. [x] Sync mode- where file(s) or directories are synchronized continuously with another keeping only the latest version. Useful for backing up static data like some script which are updated time to time or security keys like ssh or gpg keys. Use one of the following modes
-    1. [x] Compressed backup - tar ball of data (Reduces disk-space usage)
-    2. [x] Rsync: using `rsync`
-    3. [x] Add option for user-defined time interval to sync data
+1. [ ] Sync mode- where file(s) or directories are synchronized continuously with another keeping only the latest version. Useful for backing up static data like some script which are updated time to time or security keys like ssh or gpg keys. Use one of the following modes
+    1. [ ] Compressed backup - tar ball of data (Reduces disk-space usage)
+    2. [ ] Rsync: using `rsync`
+    3. [ ] Add option for user-defined time interval to sync data
 
-3. [x] Incremental mode: Where incremental backups are created like any other backup app. Use one of the following modes
-    1. [x] Compressed backup - tar ball of data (Reduces disk-space usage)
-    2. [x] Rsync: using `rsync`
-    1. [x] Add option for user-defined time interval to backup data
+3. [ ] Incremental mode: Where incremental backups are created like any other backup app. Use one of the following modes
+    1. [ ] Compressed backup - tar ball of data (Reduces disk-space usage)
+    2. [ ] Rsync: using `rsync`
+    1. [ ] Add option for user-defined time interval to backup data
 
 ## Download Latest Version
 

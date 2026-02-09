@@ -100,8 +100,7 @@ class tar_backend():
 			
 			# get a count of all the files
 			module_logger.debug(_(f"Number of files: {self.num_files}, Total size in byte: {self.total_size}"))
-			files_list = '\n'.join(self.copy_files)
-			module_logger.debug(_(f"List of files to copy: {files_list}"))
+			module_logger.debug(_(f"List of files to copy: {"\n".join(self.copy_files)}"))
 			
 			# Create META file
 			try:
@@ -132,10 +131,9 @@ class tar_backend():
 		except Exception as e:
 			print(e)
 	
-	def finish_tar_backup(self, backuplog, desc="", backup_method="tarball", backup_mode="backup"):
+	def finish_tar_backup(self, backuplog, desc="", backup_method="tarball"):
 		self.backup_method = backup_method
 		self.backup_desc = desc
-		self.backup_mode = backup_mode
 		try:
 			try:
 				self.tar_archive.close()
@@ -145,7 +143,6 @@ class tar_backend():
 					"uuid" : self.uuid,
 					"name" : self.backup_name,
 					"method" : self.backup_method,
-					"mode" : self.backup_mode,
 					"source" : self.source_dir,
 					"destination" : self.dest_dir,
 					"filename": os.path.basename(self.tarfilename),
@@ -163,10 +160,10 @@ class tar_backend():
 			except Exception as detail:
 				print(detail)
 				self.errors.append([str(detail), None])
-
+			
 			if self.archived_files < self.num_files:
 				self.errors.append([_("Warning: Some files were not saved. Only %(archived)d files were backed up out of %(total)d.") % {'archived': self.archived_files, 'total': self.num_files}, None])
-
+		
 		except Exception as e:
 			print(e)
 	

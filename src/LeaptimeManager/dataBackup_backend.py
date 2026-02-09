@@ -72,29 +72,21 @@ class UserData_backend():
 					backup["method"] = "tarball"
 				else:
 					backup["method"] = "rsync"
-
-			# Add mode field for backward compatibility
-			if not "mode" in backup:
-				backup["mode"] = "backup"
-
+			
 			if not "exclude" in backup:
 				backup["exclude"] = ""
 			if not "include" in backup:
 				backup["include"] = ""
-
+			
 			if not "count" in backup:
 				backup["count"] = ""
 			if not "size" in backup:
 				backup["size"] = ""
-
-			if not "logfile" in backup:
-				backup["logfile"] = ""
-
+			
 			data_backup_dict = {
 				"uuid" : backup["uuid"],
 				"name" : backup["name"],
 				"method" : backup["method"],
-				"mode" : backup["mode"],
 				"source" : backup["source"],
 				"destination" : backup["destination"],
 				"filename": backup["filename"],
@@ -103,7 +95,6 @@ class UserData_backend():
 				"comment" : backup["comment"],
 				"exclude" : backup["exclude"],
 				"include" : backup["include"],
-				"logfile" : backup["logfile"],
 				"count" : backup["count"],
 				"size" : backup["size"],
 			}
